@@ -1,8 +1,12 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Any, Dict
 
-app = FastAPI()
+from schemas import ContactInquiry
+from database import create_document
+
+app = FastAPI(title="Studio 19 Seattle API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,12 +17,21 @@ app.add_middleware(
 )
 
 @app.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI Backend!"}
+def read_root() -> Dict[str, Any]:
+    return {"message": "Studio 19 Seattle API running"}
 
 @app.get("/api/hello")
-def hello():
+def hello() -> Dict[str, str]:
     return {"message": "Hello from the backend API!"}
+
+@app.post("/api/contact")
+async def create_contact(inquiry: ContactInquiry) -> Dict[str, str]:
+    """Accept contact inquiries from the website and persist them in MongoDB."""
+    try:
+        inserted_id = create_document("contactinquiry", inquiry)
+        return {"status": "success", "id": inserted_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save inquiry: {str(e)[:200]}")
 
 @app.get("/test")
 def test_database():
